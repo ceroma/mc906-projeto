@@ -51,6 +51,6 @@ def save_users_pictures(user_ids, size = 'large'):
   for uid in user_ids:
     save_user_picture(uid, size)
 
-fofs = get_users_friends(get_user_friends()[])
+fofs = get_users_friends(get_user_friends())
 print len(fofs)
 pickle.dump(fofs, open("fofs.pck", "w"))
