@@ -51,7 +51,7 @@ def get_users_friends(user_ids):
 
   return response
 
-def save_user_picture(user = 'ceroma', size = 'large', timeout = 10):
+def save_user_picture(user = 'me', size = 'large', timeout = 10):
   try:
     # Request profile picture:
     pic = urllib2.urlopen(graph + user + '/picture?type=' + size)
