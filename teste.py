@@ -62,18 +62,18 @@ def save_user_picture(user = 'me', size = 'large', timeout = 10):
   except:
     timeout -= 1
     if timeout > 0:
-      save_user_picture(user, timeout = timeout)
+      save_user_picture(user, size, timeout = timeout)
 
 def save_users_pictures(user_ids, size = 'large'):
   # Start threads to download pictures
   for uid in user_ids:
     while threading.activeCount() > max_threads:
       time.sleep(1)
-    threading.Thread(target = save_user_picture, args = (uid, )).start()
+    threading.Thread(target = save_user_picture, args = (uid, size)).start()
   
 friends = get_user_friends()
 fofs = get_users_friends(friends)
+pickle.dump(fofs, open("fofs.pck", "w"))
 save_users_pictures(fofs.keys())
 while threading.activeCount() > 1:
   time.sleep(1)
-pickle.dump(fofs, open("fofs.pck", "w"))
