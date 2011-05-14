@@ -56,17 +56,31 @@ def get_images_classes(average_face, eigenfaces, image_files):
 
   return classes
 
-def find_image_class(average_face, eigenfaces, classes, image_file):
+def get_image_distances(average_face, eigenfaces, classes, image_file):
   # Project image in face space:
   target = get_image_class(average_face, eigenfaces, image_file)
 
-  # Find closest class:
-  min_dist = 2 ** 32
-  min_class = None
+  # Calculate distance to classes:
+  dists = {}
   for classe in classes:
-    dist = linalg.norm(array(target) - array(classes[classe]))
-    if dist < min_dist:
-      min_dist = dist
-      min_class = classe
+    dists[classe] = linalg.norm(array(target) - array(classes[classe]))
+
+  # Calculate distance to face space:
+  diff_image = asarray(Image.open(image_file)) - average_face
+  proj_image = zeros((1, DIM))
+  for i in range(eigenfaces.shape[1]):
+    proj_image += target[i] * eigenfaces[:,i]
+  space_dist = linalg.norm(diff_image.reshape(1, DIM) - proj_image)
+
+  return space_dist, dists
+
+def find_image_class(average_face, eigenfaces, classes, image_file):
+  # Find closest class:
+  space, dists = \
+    get_image_distances(average_face, eigenfaces, classes, image_file)
+  min_class, min_dist = dists.keys()[0], dists[dists.keys()[0]]
+  for classe in dists.keys()[1:]:
+    if dists[classe] < min_dist:
+      min_class, min_dist = classe, dists[classe]
 
   return min_class
