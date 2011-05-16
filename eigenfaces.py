@@ -37,6 +37,25 @@ def get_eigenfaces(average_face, image_files):
 
   return w, u
 
+def get_top_eigenfaces(eigenvalues, eigenvectors, pct_or_n):
+  # Sort eigenvalues in decreasing order:
+  idx_sort = argsort(eigenvalues)[::-1]
+
+  # Top N eigenvectors:
+  if (pct_or_n >= 1):
+    top_n = pct_or_n
+
+  # Top eigenvectors that account for pct% variance:
+  else:
+    i, cvalues = 0, 0.0
+    values_sum = sum(eigenvalues)
+    while ((cvalues / values_sum) < pct_or_n):
+      cvalues += eigenvalues[idx_sort[i]]
+      i += 1
+    top_n = i
+
+  return eigenvalues[idx_sort[:top_n]], eigenvectors[:,idx_sort[:top_n]]
+
 def get_image_class(average_face, eigenfaces, image_file):
   # Calculate image's class:
   image_class = []
