@@ -13,6 +13,8 @@ def facelector(image_name):
   pygame.display.flip()
 
   # Initialize target box:
+  moving_target = False
+  resizing_target = False
   target = pygame.Rect(0, 0, 50, 50)
   target.center = (photo.get_width()/2, photo.get_height()/2)
 
@@ -34,10 +36,23 @@ def facelector(image_name):
       pygame.image.save(face, "face" + image_name)
       return
 
-    # Handle mouse clicks - move target box:
+    # Handle mouse clicks - move and resize target box:
     mouse_state = pygame.mouse.get_pressed()
     if mouse_state[0]:
-      target.center = pygame.mouse.get_pos()
+      x, y = pygame.mouse.get_pos()
+      if moving_target:
+        target.center = (x, y)
+      if resizing_target:
+        target.width = x - target.left
+        target.height = y - target.top
+      elif (x >= target.right - 15) and (x <= target.right + 15) and \
+           (y >= target.bottom - 15) and (y <= target.bottom + 15):
+        resizing_target = True
+      else:
+        moving_target = True
+    else:
+      moving_target = False
+      resizing_target = False
 
     # Draw everything:
     screen.blit(photo, (0,0))
