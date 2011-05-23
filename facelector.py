@@ -1,7 +1,13 @@
 import pygame
 import sys
 
-def facelector(image_name):
+def facelector(image_name, output_name = 'target.jpg'):
+  # Constants:
+  RESIZING_TOP = 1
+  RESIZING_LEFT = 2
+  RESIZING_RIGHT = 3
+  RESIZING_BOTTOM = 4
+
   # Open picture and initialize screen:
   pygame.init()
   photo = pygame.image.load(image_name)
@@ -15,7 +21,7 @@ def facelector(image_name):
   # Initialize target box:
   moving_target = False
   resizing_target = False
-  target = pygame.Rect(0, 0, 50, 50)
+  target = pygame.Rect(0, 0, 100, 100)
   target.center = (photo.get_width()/2, photo.get_height()/2)
 
   # Events loop:
@@ -33,7 +39,7 @@ def facelector(image_name):
     if key_state[pygame.K_RETURN]:
       face = pygame.Surface(target.size)
       face.blit(photo, (0,0), target)
-      pygame.image.save(face, "face" + image_name)
+      pygame.image.save(face, output_name)
       return
 
     # Handle mouse clicks - move and resize target box:
@@ -42,12 +48,39 @@ def facelector(image_name):
       x, y = pygame.mouse.get_pos()
       if moving_target:
         target.center = (x, y)
-      if resizing_target:
-        target.width = x - target.left
-        target.height = y - target.top
-      elif (x >= target.right - 15) and (x <= target.right + 15) and \
-           (y >= target.bottom - 15) and (y <= target.bottom + 15):
-        resizing_target = True
+      elif resizing_target:
+        if resizing_target == RESIZING_TOP:
+          delta = y - target.top
+          target.top += delta
+          target.left += delta
+          target.width -= delta
+          target.height -= delta
+        elif resizing_target == RESIZING_LEFT:
+          delta = x - target.left
+          target.top += delta
+          target.left += delta
+          target.width -= delta
+          target.height -= delta
+        elif resizing_target == RESIZING_RIGHT:
+          delta = x - target.right
+          target.width += delta
+          target.height += delta
+        elif resizing_target == RESIZING_BOTTOM:
+          delta = y - target.bottom
+          target.width += delta
+          target.height += delta
+      elif (y >= target.top - 5) and (y <= target.top + 5) and \
+           (x >= target.left) and (x <= target.right):
+        resizing_target = RESIZING_TOP
+      elif (x >= target.left - 5) and (x <= target.left + 5) and \
+           (y >= target.top) and (y <= target.bottom):
+        resizing_target = RESIZING_LEFT
+      elif (x >= target.right - 5) and (x <= target.right + 5) and \
+           (y >= target.top) and (y <= target.bottom):
+        resizing_target = RESIZING_RIGHT
+      elif (y >= target.bottom - 5) and (y <= target.bottom + 5) and \
+           (x >= target.left) and (x <= target.right):
+        resizing_target = RESIZING_BOTTOM
       else:
         moving_target = True
     else:
