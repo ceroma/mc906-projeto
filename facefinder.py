@@ -25,6 +25,7 @@ if len(sys.argv) < 2:
   sys.exit()
 
 # Prepare working directory:
+print "Initializing..."
 FF_DIR = os.path.abspath(os.curdir)
 if FACES_DIR not in os.listdir('.'):
   os.mkdir(FACES_DIR)
@@ -32,21 +33,25 @@ if PICTS_DIR not in os.listdir('.'):
   os.mkdir(PICTS_DIR)
 
 # Launch face selector:
+print "Launching Face Selector..."
 facelector_args = (sys.argv[1], os.path.join(FF_DIR, FACELECTOR_OUTPUT))
 threading.Thread(target = facelector, args = facelector_args).start()
 
 # Get user's friends of friends:
+print "Fetching friends of friends..."
 friends = get_user_friends()
 fofs = friends # get_users_friends(friends)
 fofs = random.sample(friends, 30)
 
 # Get users' profile pictures:
+print "Fetching users' pictures..."
 os.chdir(PICTS_DIR)
 save_users_pictures(fofs, size = 'large')
 while (threading.activeCount() > 1):
   time.sleep(1)
 
 # Find faces in users' profile pictures:
+print "Finding users' faces..."
 cascade = cv.Load(os.path.join(FF_DIR, HAARS_DIR, HAAR_CASCADE_NAME))
 for file in os.listdir('.'):
   image = cv.LoadImageM(file, cv.CV_LOAD_IMAGE_GRAYSCALE)
@@ -57,6 +62,7 @@ for file in os.listdir('.'):
     save_image_face(file, faces[0][0], folder = os.path.join(FF_DIR, FACES_DIR))
 
 # Calculate eigenfaces:
+print "Calculating Face Space..."
 os.chdir(os.path.join(FF_DIR, FACES_DIR))
 faces_files = os.listdir('.')
 average_face = get_average_face(faces_files)
@@ -65,6 +71,7 @@ eigenvalues, eigenfaces = get_top_eigenfaces(w, u, EIGEN_TOP_PCT)
 classes = get_images_classes(average_face, eigenfaces, faces_files)
 
 # Wait for the face to be chosen by the face selector:
+print "Waiting for Face Selector..."
 os.chdir(FF_DIR)
 while (FACELECTOR_OUTPUT not in os.listdir('.')):
   time.sleep(5)
@@ -72,14 +79,15 @@ target = Image.open(FACELECTOR_OUTPUT)
 target = target.resize((100, 100)).convert("L").save(FACELECTOR_OUTPUT)
 
 # Calculate distances to face-space and classes:
+print "Searching chosen face..."
 space_dist, classes_dists = \
   get_image_distances(average_face, eigenfaces, classes, FACELECTOR_OUTPUT)
 
 # Return closest classes:
+print "Done.\n\nClosest faces:"
+closest_uids = []
 closest_classes = sorted(classes_dists.items(), key = lambda x: x[1])
 for uid, dist in closest_classes[:MAX_CLOSEST_CLASSES]:
-  print uid + ' - ' + str(dist)
-
-# Bonus: Profile Selector
-# - display closest profile pictures
-# - clicking on a picture opens the profile URL
+  closest_uids.append(uid)
+  print str(dist) + ' - ' + uid
+profile_selector(closest_uids, PICTS_DIR)

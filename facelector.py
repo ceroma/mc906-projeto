@@ -1,5 +1,6 @@
 import pygame
-import sys
+import sys, os
+import webbrowser
 
 def facelector(image_name, output_name = 'target.jpg'):
   # Constants:
@@ -33,6 +34,7 @@ def facelector(image_name, output_name = 'target.jpg'):
     pygame.event.pump()
     key_state = pygame.key.get_pressed()
     if key_state[pygame.K_ESCAPE] or pygame.event.peek(pygame.QUIT):
+      pygame.quit()
       return
 
     # Enter - crop target box: 
@@ -40,6 +42,7 @@ def facelector(image_name, output_name = 'target.jpg'):
       face = pygame.Surface(target.size)
       face.blit(photo, (0,0), target)
       pygame.image.save(face, output_name)
+      pygame.quit()
       return
 
     # Handle mouse clicks - move and resize target box:
@@ -90,6 +93,76 @@ def facelector(image_name, output_name = 'target.jpg'):
     # Draw everything:
     screen.blit(photo, (0,0))
     pygame.draw.rect(screen, (255, 0, 0), target, 3)
+    pygame.display.flip()
+
+def profile_selector(user_ids, images_path = '.'):
+  # Constants:
+  BORDER = 10
+  UID, PHOTO, RECT = range(3)
+  PROFILE_URL = 'https://www.facebook.com/profile.php?id='
+
+  # Open profile pictures:
+  pygame.init()
+  profiles = []
+  screen_width, screen_height = BORDER, 2 * BORDER
+  for uid in user_ids:
+    photo = pygame.image.load(os.path.join(images_path, uid + '.jpg'))
+    profiles.append([uid, photo])
+    screen_width += photo.get_width() + BORDER
+    screen_height = max(screen_height, photo.get_height() + 2 * BORDER)
+
+  # Initialize screen:
+  pygame.display.set_caption("Profile Selector")
+  screen = pygame.display.set_mode((screen_width, screen_height))
+  background = pygame.Surface(screen.get_size())
+  background.fill((250, 250, 250))
+  screen.blit(background, (0, 0))
+
+  # Blit profile pictures to the screen:
+  left, centery = BORDER, screen_height / 2
+  for profile in profiles:
+    rect = profile[PHOTO].get_rect()
+    rect.left, rect.centery = left, centery
+    profile.append(rect)
+    screen.blit(profile[PHOTO], rect)
+    left += profile[PHOTO].get_width() + BORDER
+  pygame.display.flip()
+
+  # Events loop:
+  selected_profile = None
+  clock = pygame.time.Clock()
+  while True:
+    clock.tick(60)
+
+    # Handle events:
+    pygame.event.pump()
+    key_state = pygame.key.get_pressed()
+    if key_state[pygame.K_ESCAPE] or pygame.event.peek(pygame.QUIT):
+      pygame.quit()
+      return
+
+    # Handle mouse hovering - highlight profiles:
+    x, y = pygame.mouse.get_pos()
+    for profile in profiles:
+      if profile[RECT].collidepoint(x, y):
+        selected_profile = profile
+        break
+    else:
+      selected_profile = None
+
+    # Handle mouse clicks - open selected profile:
+    mouse_state = pygame.mouse.get_pressed()
+    if mouse_state[0] and selected_profile:
+      webbrowser.open(PROFILE_URL + selected_profile[UID])
+      pygame.quit()
+      return
+
+    # Draw everything:
+    screen.blit(background, (0, 0))
+    for profile in profiles:
+      screen.blit(profile[PHOTO], profile[RECT])
+    if selected_profile:
+      pygame.draw.rect(screen, (255, 0, 0), selected_profile[RECT], 3)
     pygame.display.flip()
 
 # Command line execution:
