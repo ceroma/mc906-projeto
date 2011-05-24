@@ -1,8 +1,8 @@
 from numpy import *
 from PIL import Image
 
-DIM = 2500
-WIDTH, HEIGHT = 50, 50
+DIM = 10000
+WIDTH, HEIGHT = 100, 100
 
 def get_average_face(image_files):
   # Calculate average face:

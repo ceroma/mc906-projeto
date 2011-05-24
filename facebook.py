@@ -7,7 +7,7 @@ import time
 
 max_threads = 200
 graph = 'https://graph.facebook.com/'
-access_token = # Get access token the hacky way by going to 
+access_token = # Get access token the hacky way by going to
                # http://developers.facebook.com/docs/reference/api/ 
 
 def batch_request(request):
@@ -70,10 +70,3 @@ def save_users_pictures(user_ids, size = 'large'):
     while threading.activeCount() > max_threads:
       time.sleep(1)
     threading.Thread(target = save_user_picture, args = (uid, size)).start()
-  
-friends = get_user_friends()
-fofs = get_users_friends(friends)
-pickle.dump(fofs, open("fofs.pck", "w"))
-save_users_pictures(fofs.keys())
-while threading.activeCount() > 1:
-  time.sleep(1)
