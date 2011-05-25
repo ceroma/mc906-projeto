@@ -47,7 +47,7 @@ fofs = random.sample(friends, 30)
 print "Fetching users' pictures..."
 os.chdir(PICTS_DIR)
 save_users_pictures(fofs, size = 'large')
-while (threading.activeCount() > 1):
+while (threading.activeCount() > 2):
   time.sleep(1)
 
 # Find faces in users' profile pictures:
