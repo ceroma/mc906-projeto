@@ -51,21 +51,27 @@ def get_users_friends(user_ids):
 
   return response
 
-def save_user_picture(user = 'me', size = 'large', timeout = 10):
+def get_user_picture(user = 'me', size = 'large', timeout = 10):
   try:
     # Request profile picture:
     pic = urllib2.urlopen(graph + user + '/picture?type=' + size)
-  
-    # Save picture:
+    return pic
+  except:
+    if timeout > 0:
+      get_user_picture(user, size, timeout = timeout - 1)
+    else:
+      return None
+
+def save_user_picture(user = 'me', size = 'large', timeout = 10):
+  # Get picture and save on disk:
+  pic = get_user_picture(user, size)
+  if pic:
     f = open(user + '.jpg', 'w')
     f.write(pic.read())
-  except:
-    timeout -= 1
-    if timeout > 0:
-      save_user_picture(user, size, timeout = timeout)
+    f.close()
 
 def save_users_pictures(user_ids, size = 'large'):
-  # Start threads to download pictures
+  # Start threads to download pictures:
   for uid in user_ids:
     while threading.activeCount() > max_threads:
       time.sleep(1)

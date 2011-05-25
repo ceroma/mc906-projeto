@@ -4,20 +4,49 @@ from eigenfaces import *
 import cv, os, sys
 import threading, random
 
-def save_image_face(image_file, square, folder = '.'):
-  x, y, w, h = square
-  image = Image.open(image_file)
-  face = image.crop((x, y, x + w, y + h)).resize((100, 100)).convert("L")
-  face.save(folder + '/' + image_file)
-
 # Constants:
 FACES_DIR = 'faces'
 PICTS_DIR = 'pictures'
 HAARS_DIR = 'haarcascades'
+MAX_THREADS = 50
 EIGEN_TOP_PCT = 0.75
 MAX_CLOSEST_CLASSES = 6
 FACELECTOR_OUTPUT = 'target.jpg'
 HAAR_CASCADE_NAME = 'haarcascade_frontalface_alt.xml'
+
+def save_picture_face(user_id, square):
+  x, y, w, h = square
+  image = Image.open(os.path.join(PICTS_DIR, user_id + '.jpg'))
+  face = image.crop((x, y, x + w, y + h)).resize((100, 100)).convert("L")
+  face.save(os.path.join(FACES_DIR, user_id + '.jpg'))
+
+def save_user_face(user_id):
+  # Check if user face is already present:
+  user_image = user_id + '.jpg'
+  if user_image in os.listdir(FACES_DIR):
+    return
+
+  # Get user picture if not present:
+  if user_image not in os.listdir(PICTS_DIR):
+    user_picture = get_user_picture(user_id)
+    if user_picture:
+      f = open(os.path.join(PICTS_DIR, user_image), 'w')
+      f.write(user_picture.read())
+      f.close()
+
+  # Find the user's face:
+  if user_image in os.listdir(PICTS_DIR):
+    cascade = cv.Load(os.path.join(HAARS_DIR, HAAR_CASCADE_NAME))
+    try:
+      user_image = os.path.join(PICTS_DIR, user_image)
+      image = cv.LoadImageM(user_image, cv.CV_LOAD_IMAGE_GRAYSCALE)
+      faces = cv.HaarDetectObjects( \
+        image, cascade, cv.CreateMemStorage(0), scale_factor = 1.2, \
+        min_neighbors = 2, flags = 0, min_size = (20, 20))
+      if len(faces) >= 1:
+        save_picture_face(user_id, faces[0][0])
+    except:
+      return
 
 # Usage:
 if len(sys.argv) < 2:
@@ -26,45 +55,35 @@ if len(sys.argv) < 2:
 
 # Prepare working directory:
 print "Initializing..."
-FF_DIR = os.path.abspath(os.curdir)
-if FACES_DIR not in os.listdir('.'):
+FF_PATH = os.path.abspath(os.curdir)
+if FACES_DIR not in os.listdir(os.curdir):
   os.mkdir(FACES_DIR)
-if PICTS_DIR not in os.listdir('.'):
+if PICTS_DIR not in os.listdir(os.curdir):
   os.mkdir(PICTS_DIR)
 
 # Launch face selector:
 print "Launching Face Selector..."
-facelector_args = (sys.argv[1], os.path.join(FF_DIR, FACELECTOR_OUTPUT))
+facelector_args = (sys.argv[1], os.path.join(FF_PATH, FACELECTOR_OUTPUT))
 threading.Thread(target = facelector, args = facelector_args).start()
 
 # Get user's friends of friends:
 print "Fetching friends of friends..."
 friends = get_user_friends()
 fofs = friends # get_users_friends(friends)
-fofs = random.sample(friends, 30)
 
-# Get users' profile pictures:
-print "Fetching users' pictures..."
-os.chdir(PICTS_DIR)
-save_users_pictures(fofs, size = 'large')
+# Fetch profile pictures and find users' faces:
+print "Fetching pictures and finding faces..."
+for user_id in fofs:
+  while (threading.activeCount() > MAX_THREADS):
+    time.sleep(1)
+  threading.Thread(target = save_user_face, args = (user_id,)).start()
 while (threading.activeCount() > 2):
   time.sleep(1)
 
-# Find faces in users' profile pictures:
-print "Finding users' faces..."
-cascade = cv.Load(os.path.join(FF_DIR, HAARS_DIR, HAAR_CASCADE_NAME))
-for file in os.listdir('.'):
-  image = cv.LoadImageM(file, cv.CV_LOAD_IMAGE_GRAYSCALE)
-  faces = cv.HaarDetectObjects( \
-    image, cascade, cv.CreateMemStorage(0), scale_factor = 1.2, \
-    min_neighbors = 2, flags = 0, min_size = (20, 20))
-  if len(faces) >= 1:
-    save_image_face(file, faces[0][0], folder = os.path.join(FF_DIR, FACES_DIR))
-
 # Calculate eigenfaces:
 print "Calculating Face Space..."
-os.chdir(os.path.join(FF_DIR, FACES_DIR))
-faces_files = os.listdir('.')
+os.chdir(os.path.join(FF_PATH, FACES_DIR))
+faces_files = os.listdir(os.curdir)
 average_face = get_average_face(faces_files)
 w, u = get_eigenfaces(average_face, faces_files)
 eigenvalues, eigenfaces = get_top_eigenfaces(w, u, EIGEN_TOP_PCT)
@@ -72,8 +91,8 @@ classes = get_images_classes(average_face, eigenfaces, faces_files)
 
 # Wait for the face to be chosen by the face selector:
 print "Waiting for Face Selector..."
-os.chdir(FF_DIR)
-while (FACELECTOR_OUTPUT not in os.listdir('.')):
+os.chdir(FF_PATH)
+while (FACELECTOR_OUTPUT not in os.listdir(os.curdir)):
   time.sleep(5)
 target = Image.open(FACELECTOR_OUTPUT)
 target = target.resize((100, 100)).convert("L").save(FACELECTOR_OUTPUT)
