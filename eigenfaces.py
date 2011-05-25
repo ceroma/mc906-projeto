@@ -12,8 +12,6 @@ def get_average_face(image_files):
     average += image
   average = average / len(image_files)
 
-  # Save picture:
-  Image.fromarray(average.astype('uint8')).save("average_face.jpg")
   return average
 
 def get_eigenfaces(average_face, image_files):
