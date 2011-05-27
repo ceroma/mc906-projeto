@@ -7,6 +7,7 @@ import threading, random
 # Constants:
 FACES_DIR = 'faces'
 PICTS_DIR = 'pictures'
+TRAIN_DIR = 'training'
 HAARS_DIR = 'haarcascades'
 MAX_THREADS = 50
 EIGEN_TOP_PCT = 0.75
@@ -82,11 +83,18 @@ while (threading.activeCount() > 2):
 
 # Calculate eigenfaces:
 print "Calculating Face Space..."
+if TRAIN_DIR in os.listdir(os.curdir):
+  training_files = [os.path.join(TRAIN_DIR, f) for f in os.listdir(TRAIN_DIR)]
+else:
+  training_files = [os.path.join(FACES_DIR, f) for f in os.listdir(FACES_DIR)]
+average_face = get_average_face(training_files)
+w, u = get_eigenfaces(average_face, training_files)
+eigenvalues, eigenfaces = get_top_eigenfaces(w, u, EIGEN_TOP_PCT)
+
+# Project users' faces to face space:
+print "Projecting faces to Face Space.."
 os.chdir(os.path.join(FF_PATH, FACES_DIR))
 faces_files = os.listdir(os.curdir)
-average_face = get_average_face(faces_files)
-w, u = get_eigenfaces(average_face, faces_files)
-eigenvalues, eigenfaces = get_top_eigenfaces(w, u, EIGEN_TOP_PCT)
 classes = get_images_classes(average_face, eigenfaces, faces_files)
 
 # Wait for the face to be chosen by the face selector:
