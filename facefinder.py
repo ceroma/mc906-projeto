@@ -9,19 +9,31 @@ FACES_DIR = 'faces'
 PICTS_DIR = 'pictures'
 TRAIN_DIR = 'training'
 HAARS_DIR = 'haarcascades'
-MAX_THREADS = 50
+MAX_THREADS = 20
 EIGEN_TOP_PCT = 0.75
 MAX_CLOSEST_CLASSES = 6
 FACELECTOR_OUTPUT = 'target.jpg'
 HAAR_CASCADE_NAME = 'haarcascade_frontalface_alt.xml'
 
-def save_picture_face(user_id, square):
+def detect_picture_face(user_id, cascade):
+  user_image = os.path.join(PICTS_DIR, user_id + '.jpg')
+  try:
+    image = cv.LoadImageM(user_image, cv.CV_LOAD_IMAGE_GRAYSCALE)
+    faces = cv.HaarDetectObjects( \
+      image, cascade, cv.CreateMemStorage(0), scale_factor = 1.2, \
+      min_neighbors = 2, flags = 0, min_size = (20, 20))
+  except:
+    faces = []
+
+  return faces
+
+def crop_picture_face(user_id, square):
   x, y, w, h = square
   image = Image.open(os.path.join(PICTS_DIR, user_id + '.jpg'))
   face = image.crop((x, y, x + w, y + h)).resize((100, 100)).convert("L")
   face.save(os.path.join(FACES_DIR, user_id + '.jpg'))
 
-def save_user_face(user_id):
+def save_user_face(user_id, cascade):
   # Check if user face is already present:
   user_image = user_id + '.jpg'
   if user_image in os.listdir(FACES_DIR):
@@ -29,25 +41,13 @@ def save_user_face(user_id):
 
   # Get user picture if not present:
   if user_image not in os.listdir(PICTS_DIR):
-    user_picture = get_user_picture(user_id)
-    if user_picture:
-      f = open(os.path.join(PICTS_DIR, user_image), 'w')
-      f.write(user_picture.read())
-      f.close()
+    save_user_picture(user_id, path = PICTS_DIR)
 
   # Find the user's face:
   if user_image in os.listdir(PICTS_DIR):
-    cascade = cv.Load(os.path.join(HAARS_DIR, HAAR_CASCADE_NAME))
-    try:
-      user_image = os.path.join(PICTS_DIR, user_image)
-      image = cv.LoadImageM(user_image, cv.CV_LOAD_IMAGE_GRAYSCALE)
-      faces = cv.HaarDetectObjects( \
-        image, cascade, cv.CreateMemStorage(0), scale_factor = 1.2, \
-        min_neighbors = 2, flags = 0, min_size = (20, 20))
-      if len(faces) >= 1:
-        save_picture_face(user_id, faces[0][0])
-    except:
-      return
+    faces = detect_picture_face(user_id, cascade)
+    if len(faces) >= 1:
+      crop_picture_face(user_id, faces[0][0])
 
 # Usage:
 if len(sys.argv) < 2:
@@ -74,10 +74,11 @@ fofs = friends # get_users_friends(friends)
 
 # Fetch profile pictures and find users' faces:
 print "Fetching pictures and finding faces..."
+cascade = cv.Load(os.path.join(FF_PATH, HAARS_DIR, HAAR_CASCADE_NAME))
 for user_id in fofs:
   while (threading.activeCount() > MAX_THREADS):
     time.sleep(1)
-  threading.Thread(target = save_user_face, args = (user_id,)).start()
+  threading.Thread(target = save_user_face, args = (user_id, cascade)).start()
 while (threading.activeCount() > 2):
   time.sleep(1)
 

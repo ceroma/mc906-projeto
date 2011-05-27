@@ -1,9 +1,6 @@
-import json
-import pickle
-import urllib
-import urllib2
-import threading
-import time
+import json, os
+import urllib, urllib2
+import threading, time
 
 max_threads = 200
 graph = 'https://graph.facebook.com/'
@@ -62,17 +59,18 @@ def get_user_picture(user = 'me', size = 'large', timeout = 10):
     else:
       return None
 
-def save_user_picture(user = 'me', size = 'large', timeout = 10):
+def save_user_picture(user = 'me', size = 'large', path = '.'):
   # Get picture and save on disk:
   pic = get_user_picture(user, size)
   if pic:
-    f = open(user + '.jpg', 'w')
+    f = open(os.path.join(path, user + '.jpg'), 'w')
     f.write(pic.read())
     f.close()
 
-def save_users_pictures(user_ids, size = 'large'):
+def save_users_pictures(user_ids, size = 'large', path = '.'):
   # Start threads to download pictures:
   for uid in user_ids:
     while threading.activeCount() > max_threads:
       time.sleep(1)
-    threading.Thread(target = save_user_picture, args = (uid, size)).start()
+    args = (uid, size, path)
+    threading.Thread(target = save_user_picture, args = args).start()
