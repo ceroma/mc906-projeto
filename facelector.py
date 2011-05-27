@@ -10,7 +10,7 @@ def facelector(image_name, output_name = 'target.jpg'):
   RESIZING_BOTTOM = 4
 
   # Open picture and initialize screen:
-  pygame.init()
+  pygame.display.init()
   photo = pygame.image.load(image_name)
   screen = pygame.display.set_mode(photo.get_size())
   pygame.display.set_caption("Face Selector")
@@ -34,7 +34,7 @@ def facelector(image_name, output_name = 'target.jpg'):
     pygame.event.pump()
     key_state = pygame.key.get_pressed()
     if key_state[pygame.K_ESCAPE] or pygame.event.peek(pygame.QUIT):
-      pygame.quit()
+      pygame.display.quit()
       return
 
     # Enter - crop target box: 
@@ -42,7 +42,7 @@ def facelector(image_name, output_name = 'target.jpg'):
       face = pygame.Surface(target.size)
       face.blit(photo, (0,0), target)
       pygame.image.save(face, output_name)
-      pygame.quit()
+      pygame.display.quit()
       return
 
     # Handle mouse clicks - move and resize target box:
@@ -102,7 +102,7 @@ def profile_selector(user_ids, images_path = '.'):
   PROFILE_URL = 'https://www.facebook.com/profile.php?id='
 
   # Open profile pictures:
-  pygame.init()
+  pygame.display.init()
   profiles = []
   screen_width, screen_height = BORDER, 2 * BORDER
   for uid in user_ids:
@@ -138,7 +138,7 @@ def profile_selector(user_ids, images_path = '.'):
     pygame.event.pump()
     key_state = pygame.key.get_pressed()
     if key_state[pygame.K_ESCAPE] or pygame.event.peek(pygame.QUIT):
-      pygame.quit()
+      pygame.display.quit()
       return
 
     # Handle mouse hovering - highlight profiles:
@@ -154,7 +154,7 @@ def profile_selector(user_ids, images_path = '.'):
     mouse_state = pygame.mouse.get_pressed()
     if mouse_state[0] and selected_profile:
       webbrowser.open(PROFILE_URL + selected_profile[UID])
-      pygame.quit()
+      pygame.display.quit()
       return
 
     # Draw everything:
