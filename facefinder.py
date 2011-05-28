@@ -15,10 +15,10 @@ MAX_CLOSEST_CLASSES = 6
 FACELECTOR_OUTPUT = 'target.jpg'
 HAAR_CASCADE_NAME = 'haarcascade_frontalface_alt.xml'
 
-def detect_picture_face(user_id, cascade):
-  user_image = os.path.join(PICTS_DIR, user_id + '.jpg')
+def detect_image_faces(image_file, cascade):
+  # Detect all faces in image:
   try:
-    image = cv.LoadImageM(user_image, cv.CV_LOAD_IMAGE_GRAYSCALE)
+    image = cv.LoadImageM(image_file, cv.CV_LOAD_IMAGE_GRAYSCALE)
     faces = cv.HaarDetectObjects( \
       image, cascade, cv.CreateMemStorage(0), scale_factor = 1.2, \
       min_neighbors = 2, flags = 0, min_size = (20, 20))
@@ -27,11 +27,32 @@ def detect_picture_face(user_id, cascade):
 
   return faces
 
-def crop_picture_face(user_id, square):
+def crop_image_face(input_file, output_file, square, resize = (100, 100)):
+  # Open image and adjust rectangle:
+  image = Image.open(input_file)
   x, y, w, h = square
-  image = Image.open(os.path.join(PICTS_DIR, user_id + '.jpg'))
-  face = image.crop((x, y, x + w, y + h)).resize((100, 100)).convert("L")
-  face.save(os.path.join(FACES_DIR, user_id + '.jpg'))
+  x, y = max(x, 0), max(y, 0)
+  w, h = min(w, image.size[0] - x), min(h, image.size[1] - y)
+
+  # Crop image:
+  face = image.crop((x, y, x + w, y + h))
+  if resize:
+    face = face.resize(resize).convert("L")
+  face.save(output_file)
+
+def crop_tagged_photo(user_id, source, tag, size = 200):
+  # Get original photo:
+  pic = get_photo(source)
+  file_name = os.path.join(PICTS_DIR, user_id + '.jpg')
+  if pic:
+    f = open(file_name, 'w')
+    f.write(pic.read())
+    f.close()
+
+  # Crop photo around tag:
+  tag_x, tag_y = tag
+  square = (tag_x - size/2, tag_y - size/2, size, size)
+  crop_image_face(file_name, file_name, square, resize = None)
 
 def save_user_face(user_id, cascade):
   # Check if user face is already present:
@@ -44,10 +65,27 @@ def save_user_face(user_id, cascade):
     save_user_picture(user_id, path = PICTS_DIR)
 
   # Find the user's face:
-  if user_image in os.listdir(PICTS_DIR):
-    faces = detect_picture_face(user_id, cascade)
-    if len(faces) >= 1:
-      crop_picture_face(user_id, faces[0][0])
+  retry_count, retry_max = 0, 5
+  face_file = os.path.join(FACES_DIR, user_image)
+  picture_file = os.path.join(PICTS_DIR, user_image)
+  while retry_count < retry_max:
+    if user_image in os.listdir(PICTS_DIR):
+      # Try to find face on current picture:
+      faces = detect_image_faces(picture_file, cascade)
+      if len(faces) >= 1:
+        crop_image_face(picture_file, face_file, faces[0][0])
+        break
+
+      # Not found on profile picture, get tagged photos:
+      if retry_count == 0:
+        tags = get_user_tags(user_id)
+        retry_max = min(retry_max, len(tags))
+
+      # Update current picture:
+      if tags:
+        source, tag = random.choice(tags)
+        crop_tagged_photo(user_id, source, tag)
+    retry_count = retry_count + 1
 
 # Usage:
 if len(sys.argv) < 2:

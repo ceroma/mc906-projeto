@@ -12,7 +12,7 @@ def batch_request(request):
   args = {'access_token' : access_token, 'batch' : json.dumps(request)}
   return json.loads(urllib2.urlopen(graph, urllib.urlencode(args)).read())
 
-def get_user_connections(user = 'me', type = 'friends'):
+def get_user_connections(user = 'me', type = 'friends', filter = None):
   # Request connections:
   try:
     data = json.loads( \
@@ -23,11 +23,14 @@ def get_user_connections(user = 'me', type = 'friends'):
   except:
     data = {u'data': []}
 
-  # Filter IDs:
-  return [connection[u'id'] for connection in data[u'data']]
+  # Filter response:
+  if filter:
+    return [connection[filter] for connection in data[u'data']]
+  else:
+    return data[u'data']
 
 def get_user_friends(user = 'me'):
-  return get_user_connections(user, type = 'friends')
+  return get_user_connections(user, type = 'friends', filter = 'id')
 
 def get_users_friends(user_ids):
   # Create batch request:
@@ -48,16 +51,20 @@ def get_users_friends(user_ids):
 
   return response
 
-def get_user_picture(user = 'me', size = 'large', timeout = 10):
+def get_photo(source, timeout = 10):
   try:
-    # Request profile picture:
-    pic = urllib2.urlopen(graph + user + '/picture?type=' + size)
-    return pic
+    # Request source file:
+    photo = urllib2.urlopen(source)
+    return photo
   except:
     if timeout > 0:
-      get_user_picture(user, size, timeout = timeout - 1)
+      get_photo(source, timeout = timeout - 1)
     else:
       return None
+
+def get_user_picture(user = 'me', size = 'large'):
+  # Request profile picture:
+  return get_photo(graph + user + '/picture?type=' + size)
 
 def save_user_picture(user = 'me', size = 'large', path = '.'):
   # Get picture and save on disk:
@@ -74,3 +81,20 @@ def save_users_pictures(user_ids, size = 'large', path = '.'):
       time.sleep(1)
     args = (uid, size, path)
     threading.Thread(target = save_user_picture, args = args).start()
+
+def get_user_tags(user = 'me'):
+  # Request tagged photos:
+  photos = get_user_connections(user, type = 'photos')
+
+  # Get image source and user tag for each photo:
+  tags = []
+  for photo in photos:
+    source = photo['source']
+    for tag_data in photo['tags']['data']:
+      if tag_data['id'] == user:
+        tag_x = int(tag_data['x'] * photo['width'] / 100)
+        tag_y = int(tag_data['y'] * photo['height'] / 100)
+        break
+    tags.append((source, (tag_x, tag_y)))
+
+  return tags
