@@ -102,8 +102,14 @@ if PICTS_DIR not in os.listdir(os.curdir):
 
 # Launch face selector:
 print "Launching Face Selector..."
-facelector_args = (sys.argv[1], os.path.join(FF_PATH, FACELECTOR_OUTPUT))
-threading.Thread(target = facelector, args = facelector_args).start()
+cascade = cv.Load(os.path.join(FF_PATH, HAARS_DIR, HAAR_CASCADE_NAME))
+faces = [face for face, nb in detect_image_faces(sys.argv[1], cascade)]
+facelector_args = [sys.argv[1], os.path.join(FF_PATH, FACELECTOR_OUTPUT)]
+if faces:
+  facelector_args.append(faces)
+  threading.Thread(target = facelector, args = facelector_args).start()
+else:
+  threading.Thread(target = facelector_manual, args = facelector_args).start()
 
 # Get user's friends of friends:
 print "Fetching friends of friends..."
@@ -112,7 +118,6 @@ fofs = friends # get_users_friends(friends)
 
 # Fetch profile pictures and find users' faces:
 print "Fetching pictures and finding faces..."
-cascade = cv.Load(os.path.join(FF_PATH, HAARS_DIR, HAAR_CASCADE_NAME))
 for user_id in fofs:
   while (threading.activeCount() > MAX_THREADS):
     time.sleep(1)

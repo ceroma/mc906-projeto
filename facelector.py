@@ -2,7 +2,60 @@ import pygame
 import sys, os
 import webbrowser
 
-def facelector(image_name, output_name = 'target.jpg'):
+def facelector(image_name, output_name = 'target.jpg', faces = []):
+  # Open picture and initialize screen:
+  pygame.display.init()
+  photo = pygame.image.load(image_name)
+  screen = pygame.display.set_mode(photo.get_size())
+  pygame.display.set_caption("Face Selector")
+
+  # Blit photo to the screen:
+  screen.blit(photo, (0,0))
+  pygame.display.flip()
+
+  # Initialize rectangles:
+  selected_face = None
+  faces = [pygame.Rect(face) for face in faces]
+
+  # Events loop:
+  clock = pygame.time.Clock()
+  while True:
+    clock.tick(60)
+
+    # Handle events:
+    pygame.event.pump()
+    key_state = pygame.key.get_pressed()
+    if key_state[pygame.K_ESCAPE] or pygame.event.peek(pygame.QUIT):
+      pygame.display.quit()
+      return
+
+    # Handle mouse hovering - highlight faces:
+    x, y = pygame.mouse.get_pos()
+    for face in faces:
+      if face.collidepoint(x, y):
+        selected_face = face
+        break
+    else:
+      selected_face = None
+
+    # Handle mouse clicks - crop selected face:
+    mouse_state = pygame.mouse.get_pressed()
+    if mouse_state[0] and selected_face:
+      face = pygame.Surface(selected_face.size)
+      face.blit(photo, (0,0), selected_face)
+      pygame.image.save(face, output_name)
+      pygame.display.quit()
+      return
+
+    # Draw everything:
+    screen.blit(photo, (0, 0))
+    for face in faces:
+      pygame.draw.rect(screen, (255, 0, 0), face, 3)
+    if selected_face:
+      pygame.draw.rect(screen, (0, 255, 0), selected_face, 3)
+    pygame.display.flip()
+
+def facelector_manual(image_name, output_name = 'target.jpg'):
   # Constants:
   RESIZING_TOP = 1
   RESIZING_LEFT = 2
