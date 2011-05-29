@@ -1,6 +1,7 @@
 from facebook import *
 from facelector import *
 from eigenfaces import *
+from PIL import ImageOps
 import cv, os, sys
 import threading, random
 
@@ -38,6 +39,7 @@ def crop_image_face(input_file, output_file, square, resize = (100, 100)):
   face = image.crop((x, y, x + w, y + h))
   if resize:
     face = face.resize(resize).convert("L")
+    face = ImageOps.equalize(face)
   face.save(output_file)
 
 def crop_tagged_photo(user_id, source, tag, size = 200):
@@ -147,7 +149,8 @@ os.chdir(FF_PATH)
 while (FACELECTOR_OUTPUT not in os.listdir(os.curdir)):
   time.sleep(5)
 target = Image.open(FACELECTOR_OUTPUT)
-target = target.resize((100, 100)).convert("L").save(FACELECTOR_OUTPUT)
+target = target.resize((100, 100)).convert("L")
+target = ImageOps.equalize(target).save(FACELECTOR_OUTPUT)
 
 # Calculate distances to face-space and classes:
 print "Searching chosen face..."
