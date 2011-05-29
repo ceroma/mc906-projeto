@@ -3,7 +3,7 @@ from facelector import *
 from eigenfaces import *
 from PIL import ImageOps
 import cv, os, sys
-import threading, random
+import pickle, threading, random
 
 # Constants:
 FACES_DIR = 'faces'
@@ -14,6 +14,7 @@ MAX_THREADS = 20
 EIGEN_TOP_PCT = 0.75
 MAX_CLOSEST_CLASSES = 6
 FACELECTOR_OUTPUT = 'target.jpg'
+EIGENFACES_PICKLE = 'eigenfaces.pck'
 HAAR_CASCADE_NAME = 'haarcascade_frontalface_alt.xml'
 
 def detect_image_faces(image_file, cascade):
@@ -128,14 +129,18 @@ while (threading.activeCount() > 2):
   time.sleep(1)
 
 # Calculate eigenfaces:
-print "Calculating Face Space..."
-if TRAIN_DIR in os.listdir(os.curdir):
-  training_files = [os.path.join(TRAIN_DIR, f) for f in os.listdir(TRAIN_DIR)]
+if EIGENFACES_PICKLE in os.listdir(os.curdir):
+  print "Loading Face Space..."
+  average_face, eigenfaces = pickle.load(open(EIGENFACES_PICKLE, 'r'))
 else:
-  training_files = [os.path.join(FACES_DIR, f) for f in os.listdir(FACES_DIR)]
-average_face = get_average_face(training_files)
-w, u = get_eigenfaces(average_face, training_files)
-eigenvalues, eigenfaces = get_top_eigenfaces(w, u, EIGEN_TOP_PCT)
+  print "Calculating Face Space..."
+  if TRAIN_DIR in os.listdir(os.curdir):
+    training_files = [os.path.join(TRAIN_DIR, f) for f in os.listdir(TRAIN_DIR)]
+  else:
+    training_files = [os.path.join(FACES_DIR, f) for f in os.listdir(FACES_DIR)]
+  average_face = get_average_face(training_files)
+  w, u = get_eigenfaces(average_face, training_files)
+  eigenvalues, eigenfaces = get_top_eigenfaces(w, u, EIGEN_TOP_PCT)
 
 # Project users' faces to face space:
 print "Projecting faces to Face Space.."
@@ -165,3 +170,8 @@ for uid, dist in closest_classes[:MAX_CLOSEST_CLASSES]:
   closest_uids.append(uid)
   print str(dist) + ' - ' + uid
 profile_selector(closest_uids, PICTS_DIR)
+
+# Save average face and eigenfaces:
+if EIGENFACES_PICKLE not in os.listdir(os.curdir):
+  print "\nSaving Face Space.."
+  pickle.dump((average_face, eigenfaces), open(EIGENFACES_PICKLE, 'w'))
