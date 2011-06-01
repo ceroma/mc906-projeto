@@ -217,10 +217,3 @@ def profile_selector(user_ids, images_path = '.'):
     if selected_profile:
       pygame.draw.rect(screen, (255, 0, 0), selected_profile[RECT], 3)
     pygame.display.flip()
-
-# Command line execution:
-if __name__ == '__main__':
-  if len(sys.argv) < 2:
-    print "Usage: python facelector.py image"
-  else:
-    facelector(sys.argv[1])

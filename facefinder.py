@@ -90,92 +90,96 @@ def save_user_face(user_id, cascade):
         crop_tagged_photo(user_id, source, tag)
     retry_count = retry_count + 1
 
-# Usage:
-if len(sys.argv) < 2:
-  print "Usage: python facefinder.py input_image"
-  sys.exit()
+# Command line execution:
+if __name__ == '__main__':
+  # Usage:
+  if len(sys.argv) < 2:
+    print "Usage: python facefinder.py input_image"
+    sys.exit()
 
-# Prepare working directory:
-print "Initializing..."
-FF_PATH = os.path.abspath(os.curdir)
-if FACES_DIR not in os.listdir(os.curdir):
-  os.mkdir(FACES_DIR)
-if PICTS_DIR not in os.listdir(os.curdir):
-  os.mkdir(PICTS_DIR)
+  # Prepare working directory:
+  print "Initializing..."
+  FF_PATH = os.path.abspath(os.curdir)
+  if FACES_DIR not in os.listdir(os.curdir):
+    os.mkdir(FACES_DIR)
+  if PICTS_DIR not in os.listdir(os.curdir):
+    os.mkdir(PICTS_DIR)
 
-# Launch face selector:
-print "Launching Face Selector..."
-cascade = cv.Load(os.path.join(FF_PATH, HAARS_DIR, HAAR_CASCADE_NAME))
-faces = [face for face, nb in detect_image_faces(sys.argv[1], cascade)]
-facelector_args = [sys.argv[1], os.path.join(FF_PATH, FACELECTOR_OUTPUT)]
-if faces:
-  facelector_args.append(faces)
-  facelector_thread = \
-    threading.Thread(target = facelector, args = facelector_args)
-else:
-  facelector_thread = \
-  threading.Thread(target = facelector_manual, args = facelector_args)
-facelector_thread.start()
-
-# Get user's friends of friends:
-print "Fetching friends of friends..."
-friends = get_user_friends()
-fofs = friends # get_users_friends(friends)
-
-# Fetch profile pictures and find users' faces:
-print "Fetching pictures and finding faces..."
-for user_id in fofs:
-  while (threading.activeCount() > MAX_THREADS):
-    time.sleep(1)
-  threading.Thread(target = save_user_face, args = (user_id, cascade)).start()
-while (threading.activeCount() > 2 or \
-      (threading.activeCount() == 2 and not facelector_thread.isAlive())):
-  time.sleep(1)
-
-# Calculate eigenfaces:
-if EIGENFACES_PICKLE in os.listdir(os.curdir):
-  print "Loading Face Space..."
-  average_face, eigenfaces = pickle.load(open(EIGENFACES_PICKLE, 'r'))
-else:
-  print "Calculating Face Space..."
-  if TRAIN_DIR in os.listdir(os.curdir):
-    training_files = [os.path.join(TRAIN_DIR, f) for f in os.listdir(TRAIN_DIR)]
+  # Launch face selector:
+  print "Launching Face Selector..."
+  cascade = cv.Load(os.path.join(FF_PATH, HAARS_DIR, HAAR_CASCADE_NAME))
+  faces = [face for face, nb in detect_image_faces(sys.argv[1], cascade)]
+  facelector_args = [sys.argv[1], os.path.join(FF_PATH, FACELECTOR_OUTPUT)]
+  if faces:
+    facelector_args.append(faces)
+    facelector_thread = \
+      threading.Thread(target = facelector, args = facelector_args)
   else:
-    training_files = [os.path.join(FACES_DIR, f) for f in os.listdir(FACES_DIR)]
-  average_face = get_average_face(training_files)
-  w, u = get_eigenfaces(average_face, training_files)
-  eigenvalues, eigenfaces = get_top_eigenfaces(w, u, EIGEN_TOP_PCT)
+    facelector_thread = \
+    threading.Thread(target = facelector_manual, args = facelector_args)
+  facelector_thread.start()
 
-# Project users' faces to face space:
-print "Projecting faces to Face Space.."
-os.chdir(os.path.join(FF_PATH, FACES_DIR))
-faces_files = os.listdir(os.curdir)
-classes = get_images_classes(average_face, eigenfaces, faces_files)
+  # Get user's friends of friends:
+  print "Fetching friends of friends..."
+  friends = get_user_friends()
+  fofs = friends # get_users_friends(friends)
 
-# Wait for the face to be chosen by the face selector:
-print "Waiting for Face Selector..."
-os.chdir(FF_PATH)
-while (FACELECTOR_OUTPUT not in os.listdir(os.curdir)):
-  time.sleep(5)
-target = Image.open(FACELECTOR_OUTPUT)
-target = target.resize((100, 100)).convert("L")
-target = ImageOps.equalize(target).save(FACELECTOR_OUTPUT)
+  # Fetch profile pictures and find users' faces:
+  print "Fetching pictures and finding faces..."
+  for user_id in fofs:
+    while (threading.activeCount() > MAX_THREADS):
+      time.sleep(1)
+    threading.Thread(target = save_user_face, args = (user_id, cascade)).start()
+  while (threading.activeCount() > 2 or \
+        (threading.activeCount() == 2 and not facelector_thread.isAlive())):
+    time.sleep(1)
 
-# Calculate distances to face-space and classes:
-print "Searching chosen face..."
-space_dist, classes_dists = \
-  get_image_distances(average_face, eigenfaces, classes, FACELECTOR_OUTPUT)
+  # Calculate eigenfaces:
+  if EIGENFACES_PICKLE in os.listdir(os.curdir):
+    print "Loading Face Space..."
+    average_face, eigenfaces = pickle.load(open(EIGENFACES_PICKLE, 'r'))
+  else:
+    print "Calculating Face Space..."
+    if TRAIN_DIR in os.listdir(os.curdir):
+      training_files = \
+        [os.path.join(TRAIN_DIR, file) for file in os.listdir(TRAIN_DIR)]
+    else:
+      training_files = \
+        [os.path.join(FACES_DIR, file) for file in os.listdir(FACES_DIR)]
+    average_face = get_average_face(training_files)
+    w, u = get_eigenfaces(average_face, training_files)
+    eigenvalues, eigenfaces = get_top_eigenfaces(w, u, EIGEN_TOP_PCT)
 
-# Return closest classes:
-print "Done.\n\nClosest faces:"
-closest_uids = []
-closest_classes = sorted(classes_dists.items(), key = lambda x: x[1])
-for uid, dist in closest_classes[:MAX_CLOSEST_CLASSES]:
-  closest_uids.append(uid)
-  print str(dist) + ' - ' + uid
-profile_selector(closest_uids, PICTS_DIR)
+  # Project users' faces to face space:
+  print "Projecting faces to Face Space.."
+  os.chdir(os.path.join(FF_PATH, FACES_DIR))
+  faces_files = os.listdir(os.curdir)
+  classes = get_images_classes(average_face, eigenfaces, faces_files)
 
-# Save average face and eigenfaces:
-if EIGENFACES_PICKLE not in os.listdir(os.curdir):
-  print "\nSaving Face Space.."
-  pickle.dump((average_face, eigenfaces), open(EIGENFACES_PICKLE, 'w'))
+  # Wait for the face to be chosen by the face selector:
+  print "Waiting for Face Selector..."
+  os.chdir(FF_PATH)
+  while (FACELECTOR_OUTPUT not in os.listdir(os.curdir)):
+    time.sleep(5)
+  target = Image.open(FACELECTOR_OUTPUT)
+  target = target.resize((100, 100)).convert("L")
+  target = ImageOps.equalize(target).save(FACELECTOR_OUTPUT)
+
+  # Calculate distances to face-space and classes:
+  print "Searching chosen face..."
+  space_dist, classes_dists = \
+    get_image_distances(average_face, eigenfaces, classes, FACELECTOR_OUTPUT)
+
+  # Return closest classes:
+  print "Done.\n\nClosest faces:"
+  closest_uids = []
+  closest_classes = sorted(classes_dists.items(), key = lambda x: x[1])
+  for uid, dist in closest_classes[:MAX_CLOSEST_CLASSES]:
+    closest_uids.append(uid)
+    print str(dist) + ' - ' + uid
+  profile_selector(closest_uids, PICTS_DIR)
+
+  # Save average face and eigenfaces:
+  if EIGENFACES_PICKLE not in os.listdir(os.curdir):
+    print "\nSaving Face Space.."
+    pickle.dump((average_face, eigenfaces), open(EIGENFACES_PICKLE, 'w'))
