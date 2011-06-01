@@ -110,9 +110,12 @@ faces = [face for face, nb in detect_image_faces(sys.argv[1], cascade)]
 facelector_args = [sys.argv[1], os.path.join(FF_PATH, FACELECTOR_OUTPUT)]
 if faces:
   facelector_args.append(faces)
-  threading.Thread(target = facelector, args = facelector_args).start()
+  facelector_thread = \
+    threading.Thread(target = facelector, args = facelector_args)
 else:
-  threading.Thread(target = facelector_manual, args = facelector_args).start()
+  facelector_thread = \
+  threading.Thread(target = facelector_manual, args = facelector_args)
+facelector_thread.start()
 
 # Get user's friends of friends:
 print "Fetching friends of friends..."
@@ -125,7 +128,8 @@ for user_id in fofs:
   while (threading.activeCount() > MAX_THREADS):
     time.sleep(1)
   threading.Thread(target = save_user_face, args = (user_id, cascade)).start()
-while (threading.activeCount() > 2):
+while (threading.activeCount() > 2 or \
+      (threading.activeCount() == 2 and not facelector_thread.isAlive())):
   time.sleep(1)
 
 # Calculate eigenfaces:
