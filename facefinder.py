@@ -169,6 +169,7 @@ if __name__ == '__main__':
   print "Searching chosen face..."
   space_dist, classes_dists = \
     get_image_distances(average_face, eigenfaces, classes, FACELECTOR_OUTPUT)
+  os.remove(FACELECTOR_OUTPUT)
 
   # Return closest classes:
   print "Done.\n\nClosest faces:"
