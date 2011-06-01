@@ -122,7 +122,7 @@ if __name__ == '__main__':
   # Get user's friends of friends:
   print "Fetching friends of friends..."
   friends = get_user_friends()
-  fofs = friends # get_users_friends(friends)
+  fofs = get_users_friends(friends)
 
   # Fetch profile pictures and find users' faces:
   print "Fetching pictures and finding faces..."
