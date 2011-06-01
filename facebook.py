@@ -2,22 +2,22 @@ import json, os
 import urllib, urllib2
 import threading, time
 
-max_threads = 200
-graph = 'https://graph.facebook.com/'
-access_token = # Get access token the hacky way by going to
-               # http://developers.facebook.com/docs/reference/api/ 
+MAX_THREADS = 200
+GRAPH = 'https://graph.facebook.com/'
+ACCESS_TOKEN = '' # Get access token the hacky way by going to
+                  # http://developers.facebook.com/docs/reference/api/
 
 def batch_request(request):
   # Make batch request:
-  args = {'access_token' : access_token, 'batch' : json.dumps(request)}
-  return json.loads(urllib2.urlopen(graph, urllib.urlencode(args)).read())
+  args = {'access_token' : ACCESS_TOKEN, 'batch' : json.dumps(request)}
+  return json.loads(urllib2.urlopen(GRAPH, urllib.urlencode(args)).read())
 
 def get_user_connections(user = 'me', type = 'friends', filter = None):
   # Request connections:
   try:
     data = json.loads( \
              urllib2.urlopen( \
-               graph + user + '/' + type + '?access_token=' + access_token \
+               GRAPH + user + '/' + type + '?access_token=' + ACCESS_TOKEN \
              ).read() \
            )
   except:
@@ -37,6 +37,7 @@ def get_users_friends(user_ids):
   response = {}
   i = 0
   while (i < len(user_ids)):
+    # Retrieve friends for 20 users each time (API limit):
     data = batch_request( \
       [{"method": "GET", \
         "relative_url": uid + '/friends'} for uid in user_ids[i:i+20]] \
@@ -64,9 +65,9 @@ def get_photo(source, timeout = 10):
 
 def get_user_picture(user = 'me', size = 'large'):
   # Request profile picture:
-  return get_photo(graph + user + '/picture?type=' + size)
+  return get_photo(GRAPH + user + '/picture?type=' + size)
 
-def save_user_picture(user = 'me', size = 'large', path = '.'):
+def save_user_picture(user = 'me', size = 'large', path = os.curdir):
   # Get picture and save on disk:
   pic = get_user_picture(user, size)
   if pic:
@@ -74,10 +75,10 @@ def save_user_picture(user = 'me', size = 'large', path = '.'):
     f.write(pic.read())
     f.close()
 
-def save_users_pictures(user_ids, size = 'large', path = '.'):
+def save_users_pictures(user_ids, size = 'large', path = os.curdir):
   # Start threads to download pictures:
   for uid in user_ids:
-    while threading.activeCount() > max_threads:
+    while threading.activeCount() > MAX_THREADS:
       time.sleep(1)
     args = (uid, size, path)
     threading.Thread(target = save_user_picture, args = args).start()
