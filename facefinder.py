@@ -29,7 +29,7 @@ def detect_image_faces(image_file, cascade):
 
   return faces
 
-def crop_image_face(input_file, output_file, square, resize = (100, 100)):
+def crop_image_face(input_file, output_file, square, resize = (WIDTH, HEIGHT)):
   # Open image and adjust rectangle:
   image = Image.open(input_file)
   x, y, w, h = square
@@ -162,7 +162,7 @@ if __name__ == '__main__':
   while (FACELECTOR_OUTPUT not in os.listdir(os.curdir)):
     time.sleep(5)
   target = Image.open(FACELECTOR_OUTPUT)
-  target = target.resize((100, 100)).convert("L")
+  target = target.resize((WIDTH, HEIGHT)).convert("L")
   target = ImageOps.equalize(target).save(FACELECTOR_OUTPUT)
 
   # Calculate distances to face-space and classes:
